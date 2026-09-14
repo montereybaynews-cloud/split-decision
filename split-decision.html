@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Split Decision — Ticket Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --felt: #0f1a14;
+    --felt-2: #142219;
+    --paper: #f3ecd9;
+    --paper-dim: #e7dfc7;
+    --ink: #1b1f18;
+    --ink-soft: #55594e;
+    --gold: #cf9a2e;
+    --gold-deep: #a9791d;
+    --teal: #2f7a72;
+    --teal-deep: #1e564f;
+    --red: #a3413a;
+    --line: rgba(27,31,24,0.16);
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: radial-gradient(1200px 800px at 15% -10%, #16281c 0%, var(--felt) 55%), var(--felt);
+    color: var(--paper);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    padding: 32px 20px 80px;
+  }
+
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    flex-wrap: wrap; gap: 16px;
+    border-bottom: 1px solid rgba(243,236,217,0.18);
+    padding-bottom: 20px; margin-bottom: 28px;
+  }
+  header.top h1{
+    font-size: 40px; margin: 0; font-weight: 700; letter-spacing: -0.02em;
+    color: var(--paper);
+  }
+  header.top .tag{
+    font-size: 14px; color: rgba(243,236,217,0.6); max-width: 420px; line-height: 1.5;
+  }
+  header.top .mark{
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--gold);
+    border: 1px solid var(--gold-deep); padding: 6px 10px; border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .grid{
+    display: grid; grid-template-columns: 380px 1fr; gap: 24px;
+  }
+  @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+
+  .panel{
+    background: var(--felt-2);
+    border: 1px solid rgba(243,236,217,0.1);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .panel h2{
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--gold); margin: 0 0 16px; font-weight: 600;
+  }
+  .panel + .panel{ margin-top: 20px; }
+
+  label{ display:block; font-size: 12px; color: rgba(243,236,217,0.55); margin-bottom: 5px; }
+  input[type=text], input[type=number], select{
+    width: 100%; background: var(--felt); color: var(--paper);
+    border: 1px solid rgba(243,236,217,0.2); border-radius: 5px;
+    padding: 9px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+    margin-bottom: 12px;
+  }
+  select{ font-family: 'Space Grotesk', sans-serif; }
+  input::placeholder{ color: rgba(243,236,217,0.3); }
+
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .radio-set{ margin-bottom: 12px; }
+  .radio-opt{
+    display:flex; align-items:flex-start; gap: 8px; padding: 7px 8px;
+    border: 1px solid transparent; border-radius: 5px; cursor: pointer;
+    font-size: 13px; line-height: 1.35; margin-bottom: 4px;
+  }
+  .radio-opt:hover{ background: rgba(243,236,217,0.05); }
+  .radio-opt input{ margin-top: 3px; width: auto; }
+  .radio-opt.active{ border-color: rgba(207,154,46,0.5); background: rgba(207,154,46,0.08); }
+
+  button{
+    font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px;
+    border: none; border-radius: 5px; padding: 11px 16px; cursor: pointer;
+    transition: transform .05s ease;
+  }
+  button:active{ transform: scale(0.98); }
+  .btn-gold{ background: var(--gold); color: #1b1408; width: 100%; }
+  .btn-gold:hover{ background: #e0ab3d; }
+  .btn-ghost{
+    background: transparent; color: rgba(243,236,217,0.7);
+    border: 1px solid rgba(243,236,217,0.25); width: 100%; margin-top: 8px;
+  }
+  .btn-ghost:hover{ color: var(--paper); border-color: rgba(243,236,217,0.5); }
+  .btn-small{
+    background: rgba(163,65,58,0.15); color: #e2938c; border: 1px solid rgba(163,65,58,0.4);
+    font-size: 11px; padding: 4px 8px; border-radius: 4px;
+  }
+
+  .game-item{
+    background: var(--felt); border: 1px solid rgba(243,236,217,0.12);
+    border-radius: 6px; padding: 10px 12px; margin-bottom: 8px;
+    display:flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .game-item .meta{ font-size: 12px; }
+  .game-item .matchup{ font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .tag-strong{ color: var(--gold); }
+  .tag-split{ color: #6fb3ac; }
+  .empty-note{ font-size: 13px; color: rgba(243,236,217,0.4); font-style: italic; padding: 8px 0; }
+
+  /* stats dashboard */
+  .stats-row{
+    display:grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 24px;
+  }
+  @media (max-width: 720px){ .stats-row{ grid-template-columns: repeat(2,1fr); } }
+  .stat{
+    background: var(--felt-2); border: 1px solid rgba(243,236,217,0.1);
+    border-radius: 8px; padding: 16px;
+  }
+  .stat .num{
+    font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; color: var(--gold);
+    line-height: 1.1;
+  }
+  .stat.negative .num{ color: #d98f88; }
+  .stat .label{ font-size: 11px; color: rgba(243,236,217,0.5); margin-top: 6px; }
+
+  /* tickets */
+  .tickets{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 18px; }
+  .ticket{
+    background: var(--paper); color: var(--ink); border-radius: 4px;
+    position: relative; padding: 18px 16px 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+  }
+  .ticket::before, .ticket::after{
+    content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--felt); top: 50%; transform: translateY(-50%);
+  }
+  .ticket::before{ left: -8px; }
+  .ticket::after{ right: -8px; }
+  .ticket .tnum{
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-soft);
+    display:flex; justify-content: space-between; border-bottom: 1px dashed var(--line);
+    padding-bottom: 8px; margin-bottom: 10px;
+  }
+  .leg{ font-size: 13px; padding: 5px 0; border-bottom: 1px solid var(--line); display:flex; justify-content: space-between; gap: 8px;}
+  .leg:last-of-type{ border-bottom: none; }
+  .leg .pick{ font-weight: 600; }
+  .leg .pill{
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; padding: 1px 6px; border-radius: 3px;
+    white-space: nowrap; align-self: center;
+  }
+  .pill-strong{ background: rgba(169,121,29,0.18); color: var(--gold-deep); }
+  .pill-split{ background: rgba(30,86,79,0.15); color: var(--teal-deep); }
+
+  .ticket .sum{
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+  }
+  .sum-row{ display:flex; justify-content: space-between; margin-bottom: 4px; }
+  .sum-row .k{ color: var(--ink-soft); }
+  .sum-row .v{ font-weight: 600; }
+
+  .disclaimer{
+    margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(243,236,217,0.15);
+    font-size: 12px; color: rgba(243,236,217,0.4); line-height: 1.6; max-width: 720px;
+  }
+
+  .section-title{
+    font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(243,236,217,0.5);
+    margin: 0 0 14px; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <h1>Split Decision</h1>
+      <div class="tag">Build tickets around your OC/DC playcaller reads. Lock in the games where one side owns both calls, and hedge the coin-flips with a round robin.</div>
+    </div>
+    <div class="mark">v1.0 &middot; client-side, no data leaves this page</div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: INPUTS -->
+    <div>
+      <div class="panel">
+        <h2>1. Add a game</h2>
+        <div class="row2">
+          <div>
+            <label>Team A</label>
+            <input type="text" id="teamA" placeholder="e.g. 49ers">
+          </div>
+          <div>
+            <label>Team B</label>
+            <input type="text" id="teamB" placeholder="e.g. Rams">
+          </div>
+        </div>
+
+        <label>Playcaller edge</label>
+        <div class="radio-set" id="edgeSet">
+          <label class="radio-opt" data-val="strongA">
+            <input type="radio" name="edge" value="strongA">
+            <span><b>Team A</b> has both best OC &amp; best DC — strong lean</span>
+          </label>
+          <label class="radio-opt" data-val="strongB">
+            <input type="radio" name="edge" value="strongB">
+            <span><b>Team B</b> has both best OC &amp; best DC — strong lean</span>
+          </label>
+          <label class="radio-opt" data-val="split">
+            <input type="radio" name="edge" value="split">
+            <span>Split — each team has one edge (best OC or best DC). Coin-flip.</span>
+          </label>
+        </div>
+
+        <div id="splitPickWrap" style="display:none;">
+          <label>Your pick in this split</label>
+          <select id="splitPick">
+            <option value="A">Team A</option>
+            <option value="B">Team B</option>
+          </select>
+        </div>
+
+        <div class="row2">
+          <div>
+            <label>American odds (your pick)</label>
+            <input type="number" id="oddsInput" value="-110">
+          </div>
+          <div>
+            <label>Confidence % (editable)</label>
+            <input type="number" id="confInput" value="65" min="1" max="99">
+          </div>
+        </div>
+
+        <button class="btn-gold" onclick="addGame()">Add game</button>
+      </div>
+
+      <div class="panel">
+        <h2>2. Games on the board</h2>
+        <div id="gameList"><div class="empty-note">No games added yet.</div></div>
+      </div>
+
+      <div class="panel">
+        <h2>3. Ticket strategy</h2>
+        <label>Total bet amount ($)</label>
+        <input type="number" id="bankroll" value="100" min="1">
+
+        <label>Split-game combo size (legs per hedge combo)</label>
+        <select id="comboSize"><option value="1">1 (straight bets)</option></select>
+
+        <label style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+          <input type="checkbox" id="anchorStrong" checked style="width:auto; margin:0;">
+          <span style="font-size:12px; color:rgba(243,236,217,0.7);">Attach every "strong" pick to each ticket</span>
+        </label>
+
+        <label style="margin-top:12px;">Stake allocation</label>
+        <select id="stakeMode">
+          <option value="equal">Equal across tickets</option>
+          <option value="weighted">Confidence-weighted</option>
+        </select>
+
+        <button class="btn-gold" onclick="generate()" style="margin-top:14px;">Generate tickets</button>
+        <button class="btn-ghost" onclick="resetAll()">Reset everything</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: OUTPUT -->
+    <div>
+      <div class="section-title">Ticket-book statistics</div>
+      <div class="stats-row" id="statsRow">
+        <div class="stat"><div class="num">—</div><div class="label">tickets generated</div></div>
+        <div class="stat"><div class="num">—</div><div class="label">total risked</div></div>
+        <div class="stat"><div class="num">—</div><div class="label">P(at least one ticket hits)</div></div>
+        <div class="stat"><div class="num">—</div><div class="label">expected profit</div></div>
+      </div>
+
+      <div class="section-title" style="margin-top: 8px;">Tickets</div>
+      <div class="tickets" id="ticketsOut">
+        <div class="empty-note">Add games on the left, then generate tickets.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    Confidence percentages and 50/50 splits are your own estimates, not guarantees — this tool only organizes the combinatorics
+    (round robins, stake splits, blended win probability via simulation) based on the numbers you enter. Parlays and round
+    robins compound risk: every added leg lowers the chance the whole ticket cashes, even when each individual leg is likely.
+    Bet only what you can afford to lose. This runs entirely in your browser; nothing is saved or sent anywhere.
+  </div>
+</div>
+
+<script>
+let games = []; // {teamA, teamB, type: 'strongA'|'strongB'|'split', pickTeam: 'A'|'B', pickName, oppName, odds, conf}
+
+const edgeSet = document.getElementById('edgeSet');
+edgeSet.querySelectorAll('.radio-opt').forEach(opt=>{
+  opt.addEventListener('click', ()=>{
+    edgeSet.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('active'));
+    opt.classList.add('active');
+    opt.querySelector('input').checked = true;
+    const val = opt.dataset.val;
+    document.getElementById('splitPickWrap').style.display = (val==='split') ? 'block' : 'none';
+    const confInput = document.getElementById('confInput');
+    confInput.value = (val==='split') ? 50 : 65;
+  });
+});
+
+function americanToDecimal(a){
+  a = Number(a);
+  if(a>0) return 1 + a/100;
+  return 1 + 100/Math.abs(a);
+}
+
+function addGame(){
+  const teamA = document.getElementById('teamA').value.trim() || 'Team A';
+  const teamB = document.getElementById('teamB').value.trim() || 'Team B';
+  const edgeInput = edgeSet.querySelector('input[name=edge]:checked');
+  if(!edgeInput){ alert('Pick a playcaller edge for this game.'); return; }
+  const type = edgeInput.value;
+  const odds = Number(document.getElementById('oddsInput').value) || -110;
+  const conf = Math.min(99, Math.max(1, Number(document.getElementById('confInput').value) || 50)) / 100;
+
+  let pickTeam, pickName, oppName;
+  if(type==='strongA'){ pickTeam='A'; pickName=teamA; oppName=teamB; }
+  else if(type==='strongB'){ pickTeam='B'; pickName=teamB; oppName=teamA; }
+  else{
+    pickTeam = document.getElementById('splitPick').value;
+    pickName = pickTeam==='A' ? teamA : teamB;
+    oppName = pickTeam==='A' ? teamB : teamA;
+  }
+
+  games.push({teamA, teamB, type, pickTeam, pickName, oppName, odds, conf});
+  document.getElementById('teamA').value = '';
+  document.getElementById('teamB').value = '';
+  renderGames();
+  updateComboOptions();
+}
+
+function removeGame(i){
+  games.splice(i,1);
+  renderGames();
+  updateComboOptions();
+}
+
+function renderGames(){
+  const list = document.getElementById('gameList');
+  if(games.length===0){ list.innerHTML = '<div class="empty-note">No games added yet.</div>'; return; }
+  list.innerHTML = games.map((g,i)=>{
+    const tagClass = g.type==='split' ? 'tag-split' : 'tag-strong';
+    const tagText = g.type==='split' ? 'SPLIT / coin-flip' : 'STRONG lean';
+    return `<div class="game-item">
+      <div class="meta">
+        <div class="matchup">${g.pickName} <span style="color:rgba(27,31,24,0.4)">vs</span> ${g.oppName}</div>
+        <div class="${tagClass}" style="font-size:11px; font-family:'IBM Plex Mono',monospace;">${tagText} &middot; ${g.odds>0?'+':''}${g.odds} &middot; ${(g.conf*100).toFixed(0)}%</div>
+      </div>
+      <button class="btn-small" onclick="removeGame(${i})">Remove</button>
+    </div>`;
+  }).join('');
+}
+
+function updateComboOptions(){
+  const splitGames = games.filter(g=>g.type==='split');
+  const sel = document.getElementById('comboSize');
+  const n = splitGames.length;
+  let opts = '<option value="1">1 (straight bets)</option>';
+  for(let k=2;k<=Math.max(n,1);k++){
+    if(k<=n) opts += `<option value="${k}">${k}-leg combos${k===n?' (full parlay)':''}</option>`;
+  }
+  if(n>=2) opts += `<option value="all">All sizes 2–${n} (full round robin)</option>`;
+  sel.innerHTML = opts;
+}
+
+function combinations(arr, k){
+  const results = [];
+  function helper(start, combo){
+    if(combo.length===k){ results.push(combo.slice()); return; }
+    for(let i=start;i<arr.length;i++){
+      combo.push(arr[i]);
+      helper(i+1, combo);
+      combo.pop();
+    }
+  }
+  helper(0, []);
+  return results;
+}
+
+function fmtMoney(x){
+  const sign = x<0 ? '-' : '';
+  return sign + '$' + Math.abs(x).toFixed(2);
+}
+
+function generate(){
+  const bankroll = Number(document.getElementById('bankroll').value) || 0;
+  const anchorStrong = document.getElementById('anchorStrong').checked;
+  const comboSel = document.getElementById('comboSize').value;
+  const stakeMode = document.getElementById('stakeMode').value;
+
+  const strongLegs = games.filter(g=>g.type!=='split');
+  const splitLegs = games.filter(g=>g.type==='split');
+
+  if(games.length===0){
+    document.getElementById('ticketsOut').innerHTML = '<div class="empty-note">Add at least one game first.</div>';
+    return;
+  }
+
+  // Build ticket leg-sets
+  let ticketLegSets = [];
+
+  const anchors = anchorStrong ? strongLegs : [];
+
+  if(splitLegs.length===0){
+    // No split games: one ticket = all strong legs (or, if not anchoring, one ticket per strong leg as straight bets)
+    if(strongLegs.length>0){
+      ticketLegSets.push(anchorStrong ? strongLegs.slice() : [strongLegs[0]]);
+      if(!anchorStrong && strongLegs.length>1){
+        for(let i=1;i<strongLegs.length;i++) ticketLegSets.push([strongLegs[i]]);
+      }
+    }
+  } else if(comboSel==='1'){
+    // straight bets: one ticket per split leg (plus anchors attached), and strong legs as their own combined ticket if not anchored
+    splitLegs.forEach(leg=>{
+      ticketLegSets.push(anchors.concat([leg]));
+    });
+    if(!anchorStrong && strongLegs.length>0){
+      ticketLegSets.push(strongLegs.slice());
+    }
+  } else if(comboSel==='all'){
+    for(let k=2;k<=splitLegs.length;k++){
+      combinations(splitLegs, k).forEach(combo=>{
+        ticketLegSets.push(anchors.concat(combo));
+      });
+    }
+  } else {
+    const k = Number(comboSel);
+    combinations(splitLegs, k).forEach(combo=>{
+      ticketLegSets.push(anchors.concat(combo));
+    });
+  }
+
+  if(ticketLegSets.length===0){
+    document.getElementById('ticketsOut').innerHTML = '<div class="empty-note">Nothing to generate — check your combo size.</div>';
+    return;
+  }
+
+  // Per-ticket math
+  const tickets = ticketLegSets.map(legs=>{
+    const decOdds = legs.reduce((p,g)=>p*americanToDecimal(g.odds), 1);
+    const estProb = legs.reduce((p,g)=>p*g.conf, 1);
+    return { legs, decOdds, estProb };
+  });
+
+  // Stake allocation
+  let stakes;
+  if(stakeMode==='equal'){
+    const each = bankroll / tickets.length;
+    stakes = tickets.map(()=>each);
+  } else {
+    const totalWeight = tickets.reduce((s,t)=>s+t.estProb, 0) || 1;
+    stakes = tickets.map(t => bankroll * (t.estProb/totalWeight));
+  }
+
+  tickets.forEach((t,i)=>{
+    t.stake = stakes[i];
+    t.payout = t.stake * t.decOdds;
+    t.profit = t.payout - t.stake;
+  });
+
+  // Monte Carlo simulation across unique legs (shared legs stay correlated across tickets)
+  const uniqueLegs = games; // each game/leg simulated once per trial
+  const TRIALS = 20000;
+  let totalProfitSum = 0;
+  let atLeastOneWinCount = 0;
+  for(let trial=0; trial<TRIALS; trial++){
+    const outcomes = uniqueLegs.map(g => Math.random() < g.conf);
+    const legWin = new Map();
+    uniqueLegs.forEach((g,i)=> legWin.set(g, outcomes[i]));
+    let anyTicketWon = false;
+    let trialProfit = -bankroll; // start assuming all lost, add back winnings below
+    let totalRiskAccountedFor = 0;
+    tickets.forEach(t=>{
+      const allWin = t.legs.every(g=> legWin.get(g));
+      totalRiskAccountedFor += t.stake;
+      if(allWin){
+        trialProfit += t.payout; // add payout (stake already subtracted via -bankroll baseline)
+        anyTicketWon = true;
+      }
+    });
+    if(anyTicketWon) atLeastOneWinCount++;
+    totalProfitSum += trialProfit;
+  }
+  const probAtLeastOne = atLeastOneWinCount / TRIALS;
+  const expectedProfit = totalProfitSum / TRIALS;
+
+  // Render stats
+  const totalRisked = stakes.reduce((a,b)=>a+b,0);
+  const statsRow = document.getElementById('statsRow');
+  statsRow.innerHTML = `
+    <div class="stat"><div class="num">${tickets.length}</div><div class="label">tickets generated</div></div>
+    <div class="stat"><div class="num">${fmtMoney(totalRisked)}</div><div class="label">total risked</div></div>
+    <div class="stat"><div class="num">${(probAtLeastOne*100).toFixed(1)}%</div><div class="label">P(at least one ticket hits)</div></div>
+    <div class="stat ${expectedProfit<0?'negative':''}"><div class="num">${expectedProfit>=0?'+':''}${fmtMoney(expectedProfit)}</div><div class="label">expected profit (simulated)</div></div>
+  `;
+
+  // Render tickets
+  const out = document.getElementById('ticketsOut');
+  out.innerHTML = tickets.map((t,i)=>{
+    const legsHtml = t.legs.map(g=>{
+      const pillClass = g.type==='split' ? 'pill-split' : 'pill-strong';
+      const pillText = g.type==='split' ? 'SPLIT' : 'STRONG';
+      return `<div class="leg">
+        <span class="pick">${g.pickName} <span style="font-weight:400;color:var(--ink-soft)">vs ${g.oppName}</span></span>
+        <span class="pill ${pillClass}">${pillText}</span>
+      </div>`;
+    }).join('');
+    const americanCombo = t.decOdds>=2 ? '+' + Math.round((t.decOdds-1)*100) : '-' + Math.round(100/(t.decOdds-1));
+    return `<div class="ticket">
+      <div class="tnum"><span>TICKET #${(i+1).toString().padStart(2,'0')}</span><span>${t.legs.length} LEG${t.legs.length>1?'S':''}</span></div>
+      ${legsHtml}
+      <div class="sum">
+        <div class="sum-row"><span class="k">Combined odds</span><span class="v">${americanCombo} (${t.decOdds.toFixed(2)}x)</span></div>
+        <div class="sum-row"><span class="k">Est. win prob.</span><span class="v">${(t.estProb*100).toFixed(1)}%</span></div>
+        <div class="sum-row"><span class="k">Stake</span><span class="v">${fmtMoney(t.stake)}</span></div>
+        <div class="sum-row"><span class="k">Payout if hit</span><span class="v">${fmtMoney(t.payout)}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function resetAll(){
+  games = [];
+  renderGames();
+  updateComboOptions();
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><div class="num">—</div><div class="label">tickets generated</div></div>
+    <div class="stat"><div class="num">—</div><div class="label">total risked</div></div>
+    <div class="stat"><div class="num">—</div><div class="label">P(at least one ticket hits)</div></div>
+    <div class="stat"><div class="num">—</div><div class="label">expected profit</div></div>
+  `;
+  document.getElementById('ticketsOut').innerHTML = '<div class="empty-note">Add games on the left, then generate tickets.</div>';
+}
+
+updateComboOptions();
+</script>
+</body>
+</html>
